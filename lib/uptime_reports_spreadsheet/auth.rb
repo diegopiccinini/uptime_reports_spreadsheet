@@ -10,27 +10,28 @@ module UptimeReportsSpreadsheet
     OOB_URI = 'urn:ietf:wg:oauth:2.0:oob'
     APPLICATION_NAME = 'Google Sheets API Ruby Quickstart'
     CLIENT_SECRETS_PATH = 'client_secret.json'
-    CREDENTIALS_PATH = File.join(Dir.home, '.credentials',
-                                 "sheets.googleapis.com-ruby-quickstart.yaml")
-    SCOPE = Google::Apis::SheetsV4::AUTH_SPREADSHEETS_READONLY
+    INVALID_SCOPE_ERROR = "Sorry, this is an invalid scope"
 
-    ##
-    # Ensure valid credentials, either by restoring from the saved credentials
-    # files or intitiating an OAuth2 authorization. If authorization is required,
-    # the user's default browser will be launched to approve the request.
-    #
-    # @return [Google::Auth::UserRefreshCredentials] OAuth2 credentials
+    attr_accessor :service, :response
+    attr_reader :scope
+
+    def initialize scope=nil
+      @scope=scope || 5
+      @credentials_path = credentials_path
+      @service = Google::Apis::SheetsV4::SheetsService.new
+      @service.client_options.application_name = APPLICATION_NAME
+    end
+
     def authorize
-      FileUtils.mkdir_p(File.dirname(CREDENTIALS_PATH))
 
       client_id = Google::Auth::ClientId.from_file(CLIENT_SECRETS_PATH)
-      token_store = Google::Auth::Stores::FileTokenStore.new(file: CREDENTIALS_PATH)
+      token_store = Google::Auth::Stores::FileTokenStore.new(file: @credentials_path)
       authorizer = Google::Auth::UserAuthorizer.new(
-        client_id, SCOPE, token_store)
+        client_id, scope_url, token_store)
       user_id = 'default'
       credentials = authorizer.get_credentials(user_id)
+
       if credentials.nil?
-        #url = authorizer.get_authorization_url(base_url: OOB_URI)
         code = ENV['GOOGLE_API_AUTH_CODE']
         credentials = authorizer.get_and_store_credentials_from_code(
           user_id: user_id, code: code, base_url: OOB_URI)
@@ -39,17 +40,99 @@ module UptimeReportsSpreadsheet
     end
 
     def sample
-      # Initialize the API
-      service = Google::Apis::SheetsV4::SheetsService.new
-      service.client_options.application_name = APPLICATION_NAME
-      service.authorization = authorize
+      @service.authorization = authorize
 
-      # Prints the names and majors of students in a sample spreadsheet:
-      # https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
       spreadsheet_id = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'
       range = 'Class Data!A2:E'
       response = service.get_spreadsheet_values(spreadsheet_id, range)
       response.values
+    end
+
+    def create
+      request_body = Google::Apis::SheetsV4::Spreadsheet.new
+      @response = service.create_spreadsheet(request_body)
+    end
+
+    def choose_scope
+
+      puts "Choose one scope:"
+      scopes.each_pair do |k,v|
+        puts "#{k}.- #{v[:name]}"
+        puts "\t#{v[:desc]}"
+      end
+
+      scope=gets(chomp: true)
+
+      raise INVALID_SCOPE_ERROR if !scopes.keys.include?(scope.to_i)
+
+      @scope=scope.to_i
+    end
+
+    def save_credentials
+
+      choose_scope
+
+      FileUtils.mkdir_p(File.dirname(@credentials_path))
+
+      client_id = Google::Auth::ClientId.from_file(CLIENT_SECRETS_PATH)
+      token_store = Google::Auth::Stores::FileTokenStore.new(file: @credentials_path)
+      authorizer = Google::Auth::UserAuthorizer.new( client_id, scope_url, token_store)
+      url = authorizer.get_authorization_url(base_url: OOB_URI)
+      puts "Visit #{url} to get the code"
+
+      code=gets(chomp: "insert the code")
+
+      save_code code
+
+    end
+
+    def scopes
+      {
+        1 => {
+          name: 'AUTH_DRIVE',
+          desc: 'View and manage the files in your Google Drive',
+          url: 'https://www.googleapis.com/auth/drive'
+        },
+        2 => {
+          name: 'AUTH_DRIVE_FILE',
+          desc: 'View and manage Google Drive files and folders that you have opened or created with this app',
+          url: 'https://www.googleapis.com/auth/drive.file'
+        },
+        3 => {
+          name: 'AUTH_DRIVE_READONLY',
+          desc: 'View the files in your Google Drive',
+          url: 'https://www.googleapis.com/auth/drive.readonly'
+        },
+        4 => {
+          name: 'AUTH_SPREADSHEETS',
+          desc: 'View and manage your spreadsheets in Google Drive',
+          url: 'https://www.googleapis.com/auth/spreadsheets'
+        },
+        5 => {
+          name: 'AUTH_SPREADSHEETS_READONLY',
+          desc: 'View your Google Spreadsheets',
+          url: 'https://www.googleapis.com/auth/spreadsheets.readonly'
+        }
+      }
+    end
+
+    private
+
+    def credentials_path
+      scope_url=scopes[@scope][:url]
+      File.join(Dir.home, '.credentials', "sheets.googleapis.#{scope_url.split('/').last}.yaml")
+    end
+
+    def scope_url
+      scopes[@scope][:url]
+    end
+
+    def save_code code
+      name="GOOGLE_#{scopes[@scope][:name]}"
+      File.open('.env','a') do |f|
+        f.write "#{name}=#{code}"
+        f.close
+      end
     end
   end
 end

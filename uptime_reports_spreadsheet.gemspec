@@ -34,6 +34,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 1.16.a"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
+  spec.add_development_dependency "guard-rspec", "~> 4.7"
   spec.add_dependency "google-api-client", "~> 0.16"
   spec.add_dependency "byebug", "~> 9.1"
   spec.add_dependency "dotenv", "~> 2.2"

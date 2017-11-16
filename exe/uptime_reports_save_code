@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require "uptime_reports_spreadsheet"
+
+auth=UptimeReportsSpreadsheet::Auth.new
+auth.save_credentials
