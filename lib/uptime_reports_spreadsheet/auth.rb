@@ -16,17 +16,15 @@ module UptimeReportsSpreadsheet
     attr_reader :scope, :user_id
 
     def initialize scope=nil
-      @scope=scope || 5
-      @credentials_path = credentials_path
+      @scope=scope || [5]
       @service = Google::Apis::SheetsV4::SheetsService.new
       @service.client_options.application_name = APPLICATION_NAME
       @user_id='default'
     end
 
     def authorize
-
       client_id = Google::Auth::ClientId.from_file(CLIENT_SECRETS_PATH)
-      token_store = Google::Auth::Stores::FileTokenStore.new(file: @credentials_path)
+      token_store = Google::Auth::Stores::FileTokenStore.new(file: credentials_path)
       authorizer = Google::Auth::UserAuthorizer.new(client_id, scope_url, token_store)
       authorizer.get_credentials(user_id)
     end
@@ -53,21 +51,24 @@ module UptimeReportsSpreadsheet
         puts "\t#{v[:desc]}"
       end
 
-      scope=gets(chomp: true)
+      s=gets(chomp: true)
 
-      raise INVALID_SCOPE_ERROR if !scopes.keys.include?(scope.to_i)
+      s=s.split
+      @scope=s.map do |option|
+        raise INVALID_SCOPE_ERROR if !scopes.keys.include?(option.to_i)
+        option.to_i
+      end
 
-      @scope=scope.to_i
     end
 
     def save_credentials
 
       choose_scope
 
-      FileUtils.mkdir_p(File.dirname(@credentials_path))
+      FileUtils.mkdir_p(File.dirname(credentials_path))
 
       client_id = Google::Auth::ClientId.from_file(CLIENT_SECRETS_PATH)
-      token_store = Google::Auth::Stores::FileTokenStore.new(file: @credentials_path)
+      token_store = Google::Auth::Stores::FileTokenStore.new(file: credentials_path)
       authorizer = Google::Auth::UserAuthorizer.new( client_id, scope_url, token_store)
       url = authorizer.get_authorization_url(base_url: OOB_URI)
       puts "Visit #{url} to get the code"
@@ -112,16 +113,21 @@ module UptimeReportsSpreadsheet
     private
 
     def credentials_path
-      scope_url=scopes[@scope][:url]
-      File.join(Dir.home, '.credentials', "sheets.googleapis.#{scope_url.split('/').last}.yaml")
+      name=scope_url.map { |a| a.split('/').last }.join('.and.')
+      File.join(Dir.home, '.credentials', "sheets.googleapis.#{name}.yaml")
     end
 
     def scope_url
-      scopes[@scope][:url]
+      if @scope.count<1
+        scopes[@scope.first.to_i][:url]
+      else
+        @scope.map { |option| scopes[option.to_i][:url] }
+      end
     end
 
     def save_code code
-      name="GOOGLE_#{scopes[@scope][:name]}"
+      name=@scope.map { |a| scopes[a][:name] }.join('_AND_')
+      name="GOOGLE_#{name}"
       File.open('.env','a') do |f|
         f.write "#{name}=#{code}"
         f.close

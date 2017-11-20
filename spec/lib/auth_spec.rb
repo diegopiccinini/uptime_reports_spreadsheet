@@ -4,9 +4,7 @@ describe UptimeReportsSpreadsheet::Auth do
 
   describe "#sample" do
 
-    before do
-      subject.instance_variable_set(:@scope,5)
-    end
+    subject { UptimeReportsSpreadsheet::Auth.new [5] }
 
     let(:values) do
       ["Alexandra", "Female", "4. Senior", "CA", "English"]
@@ -19,7 +17,7 @@ describe UptimeReportsSpreadsheet::Auth do
   describe "#credentials_path" do
 
     before do
-      subject.instance_variable_set(:@scope,1)
+      subject.instance_variable_set(:@scope,[1])
     end
 
     let (:credentials_path) { 'drive' }
@@ -50,7 +48,7 @@ describe UptimeReportsSpreadsheet::Auth do
 
       it do
         subject.choose_scope
-        expect(subject.instance_variable_get(:@scope)).to eq 1
+        expect(subject.instance_variable_get(:@scope)).to eq [1]
       end
     end
 
