@@ -13,30 +13,22 @@ module UptimeReportsSpreadsheet
     INVALID_SCOPE_ERROR = "Sorry, this is an invalid scope"
 
     attr_accessor :service, :response
-    attr_reader :scope
+    attr_reader :scope, :user_id
 
     def initialize scope=nil
       @scope=scope || 5
       @credentials_path = credentials_path
       @service = Google::Apis::SheetsV4::SheetsService.new
       @service.client_options.application_name = APPLICATION_NAME
+      @user_id='default'
     end
 
     def authorize
 
       client_id = Google::Auth::ClientId.from_file(CLIENT_SECRETS_PATH)
       token_store = Google::Auth::Stores::FileTokenStore.new(file: @credentials_path)
-      authorizer = Google::Auth::UserAuthorizer.new(
-        client_id, scope_url, token_store)
-      user_id = 'default'
-      credentials = authorizer.get_credentials(user_id)
-
-      if credentials.nil?
-        code = ENV['GOOGLE_API_AUTH_CODE']
-        credentials = authorizer.get_and_store_credentials_from_code(
-          user_id: user_id, code: code, base_url: OOB_URI)
-      end
-      credentials
+      authorizer = Google::Auth::UserAuthorizer.new(client_id, scope_url, token_store)
+      authorizer.get_credentials(user_id)
     end
 
     def sample
@@ -80,8 +72,9 @@ module UptimeReportsSpreadsheet
       url = authorizer.get_authorization_url(base_url: OOB_URI)
       puts "Visit #{url} to get the code"
 
-      code=gets(chomp: "insert the code")
+      code=gets(chomp: true)
 
+      authorizer.get_and_store_credentials_from_code(user_id: user_id, code: code, base_url: OOB_URI)
       save_code code
 
     end
