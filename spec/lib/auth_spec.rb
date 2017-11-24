@@ -2,18 +2,6 @@ require 'spec_helper'
 
 describe UptimeReportsSpreadsheet::Auth do
 
-  describe "#sample" do
-
-    subject { UptimeReportsSpreadsheet::Auth.new [5] }
-
-    let(:values) do
-      ["Alexandra", "Female", "4. Senior", "CA", "English"]
-    end
-
-    it { expect(subject.sample.first).to match values }
-
-  end
-
   describe "#credentials_path" do
 
     before do

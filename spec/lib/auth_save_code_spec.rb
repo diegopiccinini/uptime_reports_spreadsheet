@@ -19,7 +19,7 @@ describe UptimeReportsSpreadsheet::Auth do
   describe "#save_code" do
 
     before do
-      subject.instance_variable_set(:@scope,1)
+      subject.instance_variable_set(:@scope,[1])
       subject.send(:save_code,'test')
     end
 

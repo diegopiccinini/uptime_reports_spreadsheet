@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe UptimeReportsSpreadsheet::Auth do
 
-  subject { UptimeReportsSpreadsheet::Auth.new 1 }
+  subject { UptimeReportsSpreadsheet::Auth.new [1] }
 
   describe "#save_credentails" do
 

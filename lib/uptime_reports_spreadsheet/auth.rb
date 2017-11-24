@@ -1,7 +1,7 @@
 require 'google/apis/sheets_v4'
 require 'googleauth'
 require 'googleauth/stores/file_token_store'
-
+require 'google/apis/drive_v3'
 require 'fileutils'
 module UptimeReportsSpreadsheet
 
@@ -12,7 +12,7 @@ module UptimeReportsSpreadsheet
     CLIENT_SECRETS_PATH = 'client_secret.json'
     INVALID_SCOPE_ERROR = "Sorry, this is an invalid scope"
 
-    attr_accessor :service, :response
+    attr_accessor :service, :response, :spreadsheet
     attr_reader :scope, :user_id
 
     def initialize scope=nil
@@ -27,20 +27,6 @@ module UptimeReportsSpreadsheet
       token_store = Google::Auth::Stores::FileTokenStore.new(file: credentials_path)
       authorizer = Google::Auth::UserAuthorizer.new(client_id, scope_url, token_store)
       authorizer.get_credentials(user_id)
-    end
-
-    def sample
-      @service.authorization = authorize
-
-      spreadsheet_id = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'
-      range = 'Class Data!A2:E'
-      response = service.get_spreadsheet_values(spreadsheet_id, range)
-      response.values
-    end
-
-    def create
-      request_body = Google::Apis::SheetsV4::Spreadsheet.new
-      @response = service.create_spreadsheet(request_body)
     end
 
     def choose_scope
